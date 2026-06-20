@@ -860,6 +860,7 @@
     display: none;
   }
   .status-msg.show { display: block; }
+  .status-msg.error { color: var(--pen); }
 
   /* ---------- Footer ---------- */
   footer {
@@ -1216,22 +1217,23 @@
         </div>
       </div>
 
-      <form id="application-form" class="reveal" onsubmit="handleSubmit(event)">
+      <form id="application-form" class="reveal" action="https://formspree.io/f/mojoaayn" method="POST" onsubmit="handleSubmit(event)">
+        <input type="hidden" name="_subject" value="New Eye for Detail application">
         <div class="field-row">
           <div class="field">
             <label for="name">Full name</label>
-            <input id="name" type="text" placeholder="Your name" required>
+            <input id="name" name="name" type="text" placeholder="Your name" required>
           </div>
           <div class="field">
             <label for="email">Email</label>
-            <input id="email" type="email" placeholder="you@email.com" required>
+            <input id="email" name="email" type="email" placeholder="you@email.com" required>
           </div>
         </div>
 
         <div class="field-row">
           <div class="field">
             <label for="position">Position</label>
-            <select id="position" required>
+            <select id="position" name="position" required>
               <option value="" disabled selected>Select position</option>
               <option>Goalkeeper</option>
               <option>Center back</option>
@@ -1245,14 +1247,14 @@
           </div>
           <div class="field">
             <label for="level">Level / age group</label>
-            <input id="level" type="text" placeholder="e.g. U16 club, college, semi-pro">
+            <input id="level" name="level" type="text" placeholder="e.g. U16 club, college, semi-pro">
           </div>
         </div>
 
         <div class="field-row">
           <div class="field">
             <label for="format">Format</label>
-            <select id="format" required>
+            <select id="format" name="format" required>
               <option value="" disabled selected>Select format</option>
               <option>7v7</option>
               <option>9v9</option>
@@ -1261,7 +1263,7 @@
           </div>
           <div class="field">
             <label for="delivery">How should we deliver your review?</label>
-            <select id="delivery" required>
+            <select id="delivery" name="delivery" required>
               <option value="" disabled selected>Select delivery method</option>
               <option>Written report</option>
               <option>Phone call</option>
@@ -1272,27 +1274,27 @@
 
         <div class="field">
           <label for="playstyle">How would you describe your team's style of play?</label>
-          <textarea id="playstyle" placeholder="e.g. We sit deep and counter, we build out from the back, high press, direct/long ball..."></textarea>
+          <textarea id="playstyle" name="playstyle" placeholder="e.g. We sit deep and counter, we build out from the back, high press, direct/long ball..."></textarea>
         </div>
 
         <div class="field">
           <label for="footage-link">Footage link <span class="opt">(YouTube, Hudl, Veo, etc.)</span></label>
-          <input id="footage-link" type="url" placeholder="https://">
+          <input id="footage-link" name="footage_link" type="url" placeholder="https://">
         </div>
 
         <div class="field">
           <label for="footage-file">Or upload a clip <span class="opt">(optional, max one file)</span></label>
-          <input id="footage-file" type="file" accept="video/*">
+          <input id="footage-file" name="footage_file" type="file" accept="video/*">
         </div>
 
         <div class="field">
           <label for="focus">What do you want feedback on?</label>
-          <textarea id="focus" placeholder="e.g. My positioning when we lose the ball, whether my runs in behind are timed well, decision-making under pressure..."></textarea>
+          <textarea id="focus" name="focus" placeholder="e.g. My positioning when we lose the ball, whether my runs in behind are timed well, decision-making under pressure..."></textarea>
         </div>
 
         <div class="teammate-toggle">
           <label class="checkbox-label">
-            <input type="checkbox" id="add-teammate" onchange="toggleTeammate()">
+            <input type="checkbox" id="add-teammate" name="wants_teammate_review" onchange="toggleTeammate()">
             <span>I'd like this review done together with a teammate ($60 flat for both of you)</span>
           </label>
         </div>
@@ -1301,16 +1303,16 @@
           <div class="field-row">
             <div class="field">
               <label for="teammate-name">Teammate's full name <span class="opt">(optional)</span></label>
-              <input id="teammate-name" type="text" placeholder="Their name">
+              <input id="teammate-name" name="teammate_name" type="text" placeholder="Their name">
             </div>
             <div class="field">
               <label for="teammate-email">Teammate's email <span class="opt">(optional)</span></label>
-              <input id="teammate-email" type="email" placeholder="their@email.com">
+              <input id="teammate-email" name="teammate_email" type="email" placeholder="their@email.com">
             </div>
           </div>
           <div class="field">
             <label for="teammate-position">Teammate's position <span class="opt">(optional)</span></label>
-            <select id="teammate-position">
+            <select id="teammate-position" name="teammate_position">
               <option value="" disabled selected>Select position</option>
               <option>Goalkeeper</option>
               <option>Center back</option>
@@ -1402,13 +1404,44 @@
     fields.classList.toggle('show', checkbox.checked);
   }
 
-  // Form submit (no backend — placeholder confirmation)
+  // Form submit — sends real data to Formspree via AJAX, no page redirect
   function handleSubmit(e) {
     e.preventDefault();
+    const form = document.getElementById('application-form');
     const status = document.getElementById('status');
-    status.classList.add('show');
-    document.getElementById('application-form').querySelector('.btn-primary').textContent = 'Submitted ✓';
-    document.getElementById('application-form').querySelectorAll('input, textarea, select, button').forEach(el => el.disabled = true);
+    const submitBtn = form.querySelector('.btn-primary');
+    const formData = new FormData(form);
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting…';
+    status.classList.remove('show', 'error');
+
+    fetch(form.action, {
+      method: form.method,
+      body: formData,
+      headers: { 'Accept': 'application/json' }
+    })
+      .then(response => {
+        if (response.ok) {
+          status.textContent = "Application received — we'll be in touch by email soon.";
+          status.classList.add('show');
+          submitBtn.textContent = 'Submitted ✓';
+          form.querySelectorAll('input, textarea, select, button').forEach(el => el.disabled = true);
+        } else {
+          return response.json().then(data => {
+            const message = (data && data.errors)
+              ? data.errors.map(err => err.message).join(', ')
+              : 'Something went wrong submitting your application. Please try again or email us directly.';
+            throw new Error(message);
+          });
+        }
+      })
+      .catch(error => {
+        status.textContent = error.message || 'Something went wrong submitting your application. Please try again or email us directly.';
+        status.classList.add('show', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit application →';
+      });
   }
 </script>
 
