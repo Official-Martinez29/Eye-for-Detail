@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eye for Detail — Soccer Video Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0E1110;
+    --ink-soft: #161A18;
+    --chalk: #F3F1EA;
+    --chalk-dim: #C9C6BC;
+    --brass: #C9A961;
+    --brass-dim: #8A7748;
+    --pitch: #3D5C4C;
+    --pitch-soft: #2A3F35;
+    --grey: #8B8983;
+    --pen: #E8482C;
+    --line: rgba(243,241,234,0.12);
+
+    --font-display: 'Big Shoulders Display', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--ink);
+    color: var(--chalk);
+    font-family: var(--font-body);
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  img, svg { display: block; max-width: 100%; }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* ---------- Focus visibility ---------- */
+  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 3px;
+  }
+
+  /* ---------- Reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* ---------- Nav ---------- */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(14,17,16,0.88);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: 0.01em;
+  }
+
+  .logo-mark {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 36px;
+    font-size: 14px;
+    color: var(--chalk-dim);
+  }
+
+  .nav-links a {
+    transition: color 0.2s ease;
+  }
+  .nav-links a:hover { color: var(--chalk); }
+
+  .nav-dropdown {
+    position: relative;
+  }
+
+  .nav-dropdown-trigger {
+    background: none;
+    border: none;
+    color: var(--chalk-dim);
+    font-family: var(--font-body);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    transition: color 0.2s ease;
+  }
+  .nav-dropdown-trigger:hover { color: var(--chalk); }
+
+  .nav-dropdown-caret {
+    font-size: 10px;
+    transition: transform 0.2s ease;
+    color: var(--brass);
+  }
+  .nav-dropdown-trigger[aria-expanded="true"] .nav-dropdown-caret {
+    transform: rotate(180deg);
+  }
+
+  .nav-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 14px);
+    left: 0;
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    min-width: 220px;
+    padding: 8px;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+    z-index: 60;
+  }
+
+  .nav-dropdown-menu.open {
+    display: flex;
+  }
+
+  .nav-dropdown-menu a {
+    font-size: 14px;
+    color: var(--chalk-dim);
+    padding: 9px 12px;
+    border-radius: 3px;
+    transition: background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .nav-dropdown-menu a:hover {
+    background: rgba(201,169,97,0.1);
+    color: var(--chalk);
+  }
+
+  .nav-cta {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--brass);
+    padding: 10px 18px;
+    border-radius: 2px;
+    transition: background 0.2s ease;
+    white-space: nowrap;
+  }
+  .nav-cta:hover { background: #ddbb74; }
+
+  .mobile-only-nav { display: none; }
+
+  @media (max-width: 760px) {
+    .nav-links { display: none; }
+    nav { padding: 16px 20px; }
+  }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    padding: 96px 0 80px;
+    position: relative;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 64px;
+    align-items: center;
+  }
+
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 48px; }
+    .hero { padding: 56px 0 56px; }
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brass);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+
+  .eyebrow::before {
+    content: '';
+    width: 18px;
+    height: 1px;
+    background: var(--brass);
+  }
+
+  .hero h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(36px, 5.4vw, 64px);
+    line-height: 1.04;
+    letter-spacing: -0.01em;
+    margin-bottom: 26px;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--brass);
+  }
+
+  .hero p.lede {
+    font-size: 17px;
+    color: var(--chalk-dim);
+    max-width: 480px;
+    margin-bottom: 36px;
+  }
+
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    background: var(--brass);
+    color: var(--ink);
+    padding: 15px 26px;
+    border-radius: 2px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .btn-primary:hover { background: #ddbb74; transform: translateY(-1px); }
+
+  .btn-ghost {
+    font-size: 14px;
+    color: var(--chalk-dim);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 2px;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .btn-ghost:hover { color: var(--chalk); border-color: var(--chalk-dim); }
+
+  /* ---------- Tactical diagram (signature element) ---------- */
+  .diagram-frame {
+    position: relative;
+    background: var(--pitch-soft);
+    border: 1px solid rgba(243,241,234,0.08);
+    border-radius: 4px;
+    padding: 18px;
+  }
+
+  .diagram-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--chalk-dim);
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    letter-spacing: 0.04em;
+  }
+
+  .diagram-label .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pen);
+    display: inline-block;
+    margin-right: 6px;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  svg.pitch {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .pitch-line { stroke: rgba(243,241,234,0.22); fill: none; stroke-width: 1.5; }
+  .player-dot { fill: var(--chalk); }
+  .player-dot.ghost { fill: var(--grey); opacity: 0.5; }
+  .player-dot.reviewed { fill: var(--brass); stroke: var(--ink); stroke-width: 1.5; }
+
+  .pitch-tag {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    fill: var(--grey);
+  }
+
+  .annotate {
+    stroke: var(--pen);
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 6 6;
+    stroke-dashoffset: 300;
+    animation: draw 1.3s ease forwards;
+  }
+  .annotate-1 { animation-delay: 0.5s; }
+  .annotate-2 { animation-delay: 1.0s; stroke: var(--brass); }
+  .annotate-3 { animation-delay: 1.5s; stroke: var(--grey); }
+
+  .annotate-circle {
+    stroke: var(--brass);
+    fill: none;
+    stroke-width: 2;
+    opacity: 0;
+    animation: fadeIn 0.4s ease forwards;
+    animation-delay: 1.9s;
+  }
+
+  .annotate-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    fill: var(--pen);
+    opacity: 0;
+    animation: fadeIn 0.4s ease forwards;
+  }
+  .annotate-label-1 { animation-delay: 1.3s; fill: var(--pen); }
+  .annotate-label-2 { animation-delay: 1.8s; fill: var(--brass); }
+  .annotate-label-3 { animation-delay: 2.3s; fill: var(--grey); }
+
+  .diagram-caption {
+    font-size: 13px;
+    color: var(--chalk-dim);
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  @keyframes draw {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .annotate, .annotate-circle, .annotate-label, .diagram-label .live-dot {
+      animation: none;
+      opacity: 1;
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* ---------- About section (hidden until opened from nav) ---------- */
+  .about-section {
+    display: none;
+  }
+
+  .about-section.open {
+    display: block;
+  }
+
+  .about-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(24px, 3vw, 34px);
+    line-height: 1.15;
+    max-width: 640px;
+    margin: 16px 0 36px;
+  }
+
+  .about-bio {
+    margin-top: 36px;
+  }
+
+  .about-bio p {
+    font-size: 16px;
+    color: var(--chalk-dim);
+    max-width: 680px;
+    margin-bottom: 20px;
+  }
+  .about-bio p:last-child { margin-bottom: 0; }
+
+  /* ---------- Bio / credibility ---------- */
+  .bio-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-bottom: 8px;
+  }
+
+  .bio-stat {
+    background: var(--ink-soft);
+    padding: 28px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .bio-stat-num {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 40px;
+    color: var(--brass);
+    line-height: 1;
+  }
+
+  .bio-stat-label {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--chalk-dim);
+    letter-spacing: 0.02em;
+  }
+
+  /* ---------- Section scaffolding ---------- */
+  section { padding: 88px 0; border-top: 1px solid var(--line); }
+  .hero { border-top: none; }
+
+  .section-head {
+    max-width: 620px;
+    margin-bottom: 56px;
+  }
+
+  .section-head .eyebrow { margin-bottom: 16px; }
+
+  .section-head h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(28px, 3.6vw, 42px);
+    line-height: 1.1;
+    margin-bottom: 14px;
+  }
+
+  .section-head p {
+    color: var(--chalk-dim);
+    font-size: 16px;
+  }
+
+  /* ---------- What you get: 3 cards ---------- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+
+  @media (max-width: 800px) {
+    .cards { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--ink);
+    padding: 36px 32px;
+    transition: background 0.25s ease;
+  }
+  .card:hover { background: var(--ink-soft); }
+
+  .card-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 24px;
+  }
+
+  .card h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 22px;
+    margin-bottom: 10px;
+    letter-spacing: 0.01em;
+  }
+
+  .card p {
+    color: var(--chalk-dim);
+    font-size: 14.5px;
+  }
+
+  /* ---------- Process / film-strip ---------- */
+  .filmstrip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-left: 1px solid var(--line);
+  }
+
+  @media (max-width: 800px) {
+    .filmstrip { grid-template-columns: 1fr; }
+  }
+
+  .frame {
+    border-right: 1px solid var(--line);
+    padding: 0 28px 0 28px;
+    position: relative;
+  }
+
+  @media (max-width: 800px) {
+    .frame { border-right: none; border-bottom: 1px solid var(--line); padding-bottom: 36px; margin-bottom: 36px; }
+    .frame:last-child { border-bottom: none; margin-bottom: 0; }
+  }
+
+  .frame-time {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--brass);
+    margin-bottom: 18px;
+    display: block;
+  }
+
+  .frame h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 21px;
+    margin-bottom: 12px;
+  }
+
+  .frame p {
+    color: var(--chalk-dim);
+    font-size: 14.5px;
+  }
+
+  /* ---------- Sample breakdown / demo ---------- */
+  .demo {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .demo { grid-template-columns: 1fr; }
+  }
+
+  .video-mock {
+    background: #000;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    position: relative;
+  }
+
+  .video-mock svg { width: 100%; display: block; }
+
+  .video-mock-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--ink-soft);
+    border-top: 1px solid var(--line);
+  }
+
+  .video-mock-bar .play {
+    width: 0; height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid var(--chalk);
+  }
+
+  .video-mock-bar .scrub {
+    flex: 1;
+    height: 3px;
+    background: var(--line);
+    border-radius: 2px;
+    position: relative;
+  }
+  .video-mock-bar .scrub::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 38%;
+    background: var(--brass);
+    border-radius: 2px;
+  }
+
+  .video-mock-bar .timestamp {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--chalk-dim);
+  }
+
+  .transcript {
+    background: var(--ink-soft);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 28px;
+  }
+
+  .transcript-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--grey);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .transcript-label::before {
+    content: '▸';
+    color: var(--pen);
+  }
+
+  .transcript-line {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 18px;
+    font-size: 14.5px;
+  }
+  .transcript-line:last-child { margin-bottom: 0; }
+
+  .transcript-line .ts {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: var(--brass);
+    flex-shrink: 0;
+    padding-top: 1px;
+  }
+
+  .transcript-line p {
+    color: var(--chalk-dim);
+  }
+
+  .transcript-line strong {
+    color: var(--chalk);
+    font-weight: 500;
+  }
+
+  /* ---------- Application form ---------- */
+  .apply-section {
+    background: var(--ink-soft);
+  }
+
+  .apply-grid {
+    display: grid;
+    grid-template-columns: 0.85fr 1.15fr;
+    gap: 64px;
+  }
+
+  @media (max-width: 900px) {
+    .apply-grid { grid-template-columns: 1fr; gap: 40px; }
+  }
+
+  .pricing-table {
+    margin-top: 32px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .pricing-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+    font-size: 14.5px;
+  }
+  .pricing-row:last-child { border-bottom: none; }
+
+  .pricing-row-free {
+    background: rgba(201,169,97,0.08);
+  }
+
+  .pricing-row-pair {
+    background: var(--ink);
+  }
+
+  .pricing-label { color: var(--chalk-dim); }
+
+  .pricing-amount {
+    font-family: var(--font-mono);
+    color: var(--brass);
+    font-size: 15px;
+  }
+
+  .pricing-row-free .pricing-amount { color: var(--chalk); }
+
+  .pricing-flat {
+    font-size: 11px;
+    color: var(--grey);
+    font-family: var(--font-mono);
+  }
+
+  .pricing-footnote {
+    font-size: 13px;
+    color: var(--grey);
+    margin-top: 14px;
+  }
+
+  .apply-note {
+    font-size: 14.5px;
+    color: var(--chalk-dim);
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+
+  .apply-note strong { color: var(--chalk); font-weight: 500; }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+  }
+
+  @media (max-width: 560px) {
+    .field-row { grid-template-columns: 1fr; }
+  }
+
+  label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--brass);
+    letter-spacing: 0.03em;
+  }
+
+  label .opt {
+    color: var(--grey);
+    font-weight: 400;
+  }
+
+  input, textarea, select {
+    background: var(--ink);
+    border: 1px solid var(--line);
+    color: var(--chalk);
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    padding: 13px 14px;
+    border-radius: 2px;
+    transition: border-color 0.2s ease;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--brass);
+  }
+
+  textarea { resize: vertical; min-height: 100px; }
+
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23C9A961'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+  }
+
+  ::placeholder { color: var(--grey); }
+
+  .teammate-toggle {
+    padding: 16px 18px;
+    background: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--chalk-dim);
+    cursor: pointer;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  .checkbox-label input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    margin-top: 1px;
+    accent-color: var(--brass);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .teammate-fields {
+    display: none;
+    flex-direction: column;
+    gap: 22px;
+    padding: 22px;
+    background: rgba(201,169,97,0.06);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+  }
+
+  .teammate-fields.show {
+    display: flex;
+  }
+
+  .submit-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-top: 8px;
+  }
+
+  .submit-row p {
+    font-size: 12.5px;
+    color: var(--grey);
+  }
+
+  .status-msg {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--brass);
+    display: none;
+  }
+  .status-msg.show { display: block; }
+
+  /* ---------- Footer ---------- */
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 40px 0;
+  }
+
+  .footer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .footer-row .logo { font-size: 16px; }
+
+  .footer-row p {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--grey);
+  }
+
+  /* ---------- Reveal on scroll ---------- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <div class="logo">
+      <svg class="logo-mark" viewBox="0 0 26 26" fill="none">
+        <circle cx="13" cy="13" r="9" stroke="#C9A961" stroke-width="1.5"/>
+        <circle cx="13" cy="13" r="3" fill="#C9A961"/>
+        <path d="M2 13c3-6 8-9 11-9" stroke="#E8482C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 3"/>
+      </svg>
+      Eye for Detail
+    </div>
+    <div class="nav-links">
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-trigger" onclick="toggleNavDropdown(event)" aria-expanded="false" aria-haspopup="true">
+          About <span class="nav-dropdown-caret">▾</span>
+        </button>
+        <div class="nav-dropdown-menu">
+          <a href="#about" onclick="openAboutSection(event)">Who's behind the breakdown</a>
+          <a href="#how-it-works">How it works</a>
+        </div>
+      </div>
+      <a href="#what-you-get">What you get</a>
+      <a href="#sample">Sample breakdown</a>
+    </div>
+    <a href="#apply" class="nav-cta">Apply for a review</a>
+  </nav>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero wrap" style="border-top:none;">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">Your first review is free</div>
+        <h1>Most players watch their highlights.<br>We watch their <em>decisions</em>.</h1>
+        <p class="lede">Eye for Detail breaks down your game film the way a coach would — where you were, where you should've been, and the run you didn't see. No algorithms. A real set of eyes on your tape.</p>
+        <div class="hero-actions">
+          <a href="#apply" class="btn-primary">Apply for a free review →</a>
+          <a href="#sample" class="btn-ghost">See a sample breakdown</a>
+        </div>
+      </div>
+
+      <div class="diagram-frame reveal in">
+        <div class="diagram-label">
+          <span><span class="live-dot"></span>POSITIONING — 67:12</span>
+          <span>EFD-CAM-02</span>
+        </div>
+        <svg class="pitch" viewBox="0 0 360 240">
+          <!-- pitch outline -->
+          <rect x="6" y="6" width="348" height="228" class="pitch-line"/>
+          <line x1="180" y1="6" x2="180" y2="234" class="pitch-line"/>
+          <circle cx="180" cy="120" r="34" class="pitch-line"/>
+          <rect x="6" y="64" width="48" height="112" class="pitch-line"/>
+          <rect x="306" y="64" width="48" height="112" class="pitch-line"/>
+
+          <!-- opposition back line, up on the halfway line -->
+          <line x1="180" y1="20" x2="180" y2="220" class="pitch-line" stroke-dasharray="3 4" opacity="0.4"/>
+          <circle class="player-dot ghost" cx="180" cy="50" r="5"/>
+          <circle class="player-dot ghost" cx="180" cy="100" r="5"/>
+          <circle class="player-dot ghost" cx="180" cy="140" r="5"/>
+          <circle class="player-dot ghost" cx="180" cy="195" r="5"/>
+          <text class="pitch-tag" x="186" y="199">OPP RB</text>
+
+          <!-- own CB, parallel to his own 18-yard box, in possession -->
+          <circle class="player-dot" cx="70" cy="120" r="6"/>
+          <text class="pitch-tag" x="50" y="138">CB</text>
+
+          <!-- the winger (player being reviewed), clearly separated from the opposition RB -->
+          <circle class="player-dot reviewed" cx="160" cy="160" r="6"/>
+
+          <!-- three branching options for the winger -->
+          <path class="annotate annotate-1" d="M160,160 L160,228" />
+          <text class="annotate-label annotate-label-1" x="118" y="220">WIDE TO TOUCHLINE</text>
+
+          <path class="annotate annotate-2" d="M160,160 C140,150 125,142 112,132" />
+          <text class="annotate-label annotate-label-2" x="68" y="148">CHECKS TO CB</text>
+
+          <path class="annotate annotate-3" d="M160,160 C195,148 225,138 254,128" />
+          <text class="annotate-label annotate-label-3" x="225" y="112">RUN IN BEHIND</text>
+
+          <circle class="annotate-circle" cx="254" cy="130" r="14"/>
+        </svg>
+        <p class="diagram-caption">Three live options off one read — which one's right depends on your team's style of play.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ABOUT / CREDIBILITY -->
+  <section id="about" class="wrap about-section">
+    <div id="about-content" class="about-content">
+      <div class="eyebrow">Who's behind the breakdown</div>
+      <h2 class="about-title">15 years of competitive soccer, from MLS NEXT-level academy ball to an NCAA Elite Eight run.</h2>
+
+      <div class="bio-stats">
+        <div class="bio-stat">
+          <span class="bio-stat-num">6</span>
+          <span class="bio-stat-label">Years at Miami<br>Fútbol Academy Rush</span>
+        </div>
+        <div class="bio-stat">
+          <span class="bio-stat-num">3</span>
+          <span class="bio-stat-label">Years on the<br>Academy team</span>
+        </div>
+        <div class="bio-stat">
+          <span class="bio-stat-num">4</span>
+          <span class="bio-stat-label">Years D-II soccer,<br>Rollins College</span>
+        </div>
+        <div class="bio-stat">
+          <span class="bio-stat-num">E8</span>
+          <span class="bio-stat-label">NCAA Tournament,<br>senior season</span>
+        </div>
+      </div>
+
+      <div class="about-bio">
+        <p>My name is Adrian Martinez. I'm a former soccer player with 15 years of competitive experience.</p>
+        <p>My competitive career began at Miami Fútbol Academy Rush, formerly known as Miami Rush Kendall SC and Kendall Soccer Coalition. I played there for six years, spending three of them — U14, U16, and U18 — on their Academy teams, the equivalent of present-day MLS NEXT. During that time, I represented the USA in two tournaments in Portugal, and played in Colombia against the youth teams of Atlético Nacional, Deportivo Independiente Medellín, Envigado F.C., and Águilas Doradas. In the US, I played against teams like the New York Red Bulls, Atlanta United, and FC Dallas.</p>
+        <p>In college, I played for the Rollins College Men's Soccer Team in Division II's Sunshine State Conference — the toughest D-II conference in the nation. The highlight of my four years playing college soccer was reaching the Elite Eight of the NCAA tournament.</p>
+        <p>Off the field, I went on to a PhD program before turning toward medicine — I'm currently applying to medical school. The same habit got me through both: paying close, unglamorous attention to detail. That's what this is.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- WHAT YOU GET -->
+  <section id="what-you-get" class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">What you get</div>
+      <h2>Three things highlight reels never show you.</h2>
+      <p>A goal or an assist tells you what happened. It doesn't tell you why it worked, or what was open that you missed. That's the part we look at.</p>
+    </div>
+
+    <div class="cards">
+      <div class="card reveal">
+        <svg class="card-icon" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="20" stroke="#C9A961" stroke-width="1.4"/>
+          <circle cx="17" cy="20" r="3" fill="#F3F1EA"/>
+          <circle cx="31" cy="28" r="3" fill="#8B8983" opacity="0.6"/>
+          <circle cx="24" cy="34" r="3" fill="#8B8983" opacity="0.6"/>
+          <path d="M17 20 L24 34" stroke="#E8482C" stroke-width="1.4" stroke-dasharray="2 3"/>
+        </svg>
+        <h3>Positioning</h3>
+        <p>Where you stood relative to the ball, your marker, and the shape of the team — frame by frame, not just on the highlight clips.</p>
+      </div>
+      <div class="card reveal">
+        <svg class="card-icon" viewBox="0 0 48 48" fill="none">
+          <circle cx="14" cy="34" r="3" fill="#F3F1EA"/>
+          <circle cx="34" cy="14" r="3" fill="#8B8983" opacity="0.6"/>
+          <circle cx="34" cy="34" r="3" fill="#8B8983" opacity="0.6"/>
+          <path d="M14 34 L34 14" stroke="#E8482C" stroke-width="1.4"/>
+          <path d="M14 34 L34 34" stroke="#C9A961" stroke-width="1.4" stroke-dasharray="2 3"/>
+          <text x="20" y="8" font-family="JetBrains Mono" font-size="6" fill="#8B8983">A vs B</text>
+        </svg>
+        <h3>Decisions</h3>
+        <p>The pass you played versus the one that was on. Why a choice made sense in the moment, or what made it the wrong read.</p>
+      </div>
+      <div class="card reveal">
+        <svg class="card-icon" viewBox="0 0 48 48" fill="none">
+          <path d="M10 38 C18 20 30 14 40 10" stroke="#E8482C" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="3 4"/>
+          <circle cx="10" cy="38" r="3" fill="#F3F1EA"/>
+          <circle cx="40" cy="10" r="3" fill="#C9A961"/>
+        </svg>
+        <h3>Runs</h3>
+        <p>The movement off the ball that never shows up in a box score — the runs that pull defenders, and the ones you left on the table.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works" class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">How it works</div>
+      <h2>Three clips. One sit-down. No dashboard to learn.</h2>
+      <p>This isn't software you log into. It's footage you send us, and a walkthrough you get back.</p>
+    </div>
+
+    <div class="filmstrip">
+      <div class="frame reveal">
+        <span class="frame-time">STEP — SUBMIT</span>
+        <h3>Send your footage</h3>
+        <p>Upload a clip directly or drop a link — full match, a half, or just the moments you want eyes on. Tell us your position and what you want feedback on.</p>
+      </div>
+      <div class="frame reveal">
+        <span class="frame-time">STEP — REVIEW</span>
+        <h3>We watch it twice</h3>
+        <p>Once for the obvious moments, once for the picture around you — where teammates and defenders were when you made each decision.</p>
+      </div>
+      <div class="frame reveal">
+        <span class="frame-time">STEP — DELIVER</span>
+        <h3>You get the breakdown, your way</h3>
+        <p>A written report, a phone call, or a narrated video with animations over the footage as we talk — pick whichever fits how you actually learn.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- SAMPLE BREAKDOWN -->
+  <section id="sample" class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">Sample breakdown</div>
+      <h2>What the video format actually looks like.</h2>
+      <p>This is the narrated video option — one of three formats available. Here's a short excerpt, so you know what to expect before you apply.</p>
+    </div>
+
+    <div class="demo">
+      <div class="video-mock reveal">
+        <svg viewBox="0 0 480 280" xmlns="http://www.w3.org/2000/svg">
+          <rect width="480" height="280" fill="#13201A"/>
+          <rect x="14" y="14" width="452" height="252" fill="none" stroke="rgba(243,241,234,0.08)"/>
+          <!-- own goal, left edge -->
+          <rect x="14" y="105" width="14" height="70" fill="none" stroke="rgba(243,241,234,0.15)"/>
+
+          <!-- opposition front three, pressing tight to our back line. LW and RW swapped so LW sits on the LB's side. -->
+          <circle cx="115" cy="70" r="6" fill="#8B8983" opacity="0.55"/>
+          <text x="108" y="58" font-family="JetBrains Mono" font-size="8" fill="#8B8983">OPP LW</text>
+          <circle cx="135" cy="195" r="6" fill="#8B8983" opacity="0.6"/>
+          <text x="128" y="183" font-family="JetBrains Mono" font-size="8" fill="#8B8983">OPP ST</text>
+          <circle cx="110" cy="245" r="6" fill="#8B8983" opacity="0.65"/>
+          <text x="103" y="262" font-family="JetBrains Mono" font-size="8" fill="#8B8983">OPP RW</text>
+
+          <!-- opposition LB with the ball, tight to our RB's side -->
+          <circle cx="165" cy="235" r="7" fill="#8B8983" opacity="0.85"/>
+          <text x="155" y="222" font-family="JetBrains Mono" font-size="8" fill="#8B8983">OPP LB · BALL</text>
+
+          <!-- our back line, flat, in order top-to-bottom: LB, Left CB, Right CB (YOU), RB -->
+          <circle cx="60" cy="40" r="6" fill="#F3F1EA" opacity="0.85"/>
+          <text x="25" y="32" font-family="JetBrains Mono" font-size="8" fill="#8B8983">LB</text>
+
+          <circle cx="60" cy="100" r="6" fill="#F3F1EA" opacity="0.85"/>
+          <text x="10" y="92" font-family="JetBrains Mono" font-size="8" fill="#8B8983">LEFT CB</text>
+
+          <!-- reviewed player: right CB, organizing the shift -->
+          <circle cx="60" cy="160" r="7" fill="#C9A961" stroke="#13201A" stroke-width="1.5"/>
+          <text x="20" y="152" font-family="JetBrains Mono" font-size="8" fill="#C9A961">YOU · RIGHT CB</text>
+
+          <circle cx="60" cy="220" r="6" fill="#F3F1EA" opacity="0.85"/>
+          <text x="25" y="212" font-family="JetBrains Mono" font-size="8" fill="#8B8983">RB</text>
+
+          <!-- shift arrows: the whole line compresses toward the ball side, staying flat -->
+          <path d="M60,40 C60,55 60,68 60,80" stroke="#E8482C" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="5 5" opacity="0.8"/>
+          <path d="M60,100 C60,110 60,122 60,130" stroke="#E8482C" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="5 5" opacity="0.8"/>
+          <path d="M60,160 C60,165 60,170 60,175" stroke="#E8482C" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-dasharray="6 6"/>
+          <path d="M60,220 C60,221 60,223 60,225" stroke="#E8482C" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="5 5" opacity="0.6"/>
+
+          <!-- destination markers for the shifted, compressed line -->
+          <circle cx="60" cy="80" r="11" stroke="#8B8983" stroke-width="1.2" fill="none" opacity="0.5"/>
+          <circle cx="60" cy="130" r="11" stroke="#8B8983" stroke-width="1.2" fill="none" opacity="0.5"/>
+          <circle cx="60" cy="175" r="13" stroke="#C9A961" stroke-width="1.5" fill="none" opacity="0.8"/>
+          <circle cx="60" cy="225" r="11" stroke="#8B8983" stroke-width="1.2" fill="none" opacity="0.4"/>
+
+          <text x="280" y="40" font-family="JetBrains Mono" font-size="11" fill="#E8482C">SHIFT THE LINE</text>
+
+          <!-- timestamp burn-in -->
+          <text x="26" y="252" font-family="JetBrains Mono" font-size="11" fill="#C9A961">52:10</text>
+        </svg>
+        <div class="video-mock-bar">
+          <div class="play"></div>
+          <div class="scrub"></div>
+          <span class="timestamp">52:10 / 84:00</span>
+        </div>
+      </div>
+
+      <div class="transcript reveal">
+        <div class="transcript-label">Walkthrough excerpt — center back, home match</div>
+        <div class="transcript-line">
+          <span class="ts">52:04</span>
+          <p><strong>"Their left back just got it</strong> around midfield, and look where their front three went — winger, striker, right winger have all drifted over to this side. That's an overload."</p>
+        </div>
+        <div class="transcript-line">
+          <span class="ts">52:07</span>
+          <p>"This is where you've got to talk. <strong>You're the one who sees the whole picture</strong> from center back — your left CB and your left back can't see this shift starting."</p>
+        </div>
+        <div class="transcript-line">
+          <span class="ts">52:10</span>
+          <p>"<strong>Shift the whole line toward the ball</strong> — not just you. If your CB and LB tuck in tight together, they cover each other and there's no gap to play through."</p>
+        </div>
+        <div class="transcript-line">
+          <span class="ts">52:14</span>
+          <p>"This call is the difference between conceding here and forcing them backward. We'll flag the same shift again at 68:30."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- APPLY -->
+  <section id="apply" class="apply-section">
+    <div class="wrap apply-grid">
+      <div class="reveal">
+        <div class="eyebrow">Apply for a review</div>
+        <h2 style="font-family: var(--font-display); font-weight:700; font-size: clamp(26px,3.2vw,36px); line-height:1.1; margin-bottom:16px;">Your first breakdown is on us.</h2>
+        <p style="color: var(--chalk-dim); font-size: 15px;">Eye for Detail is just getting started, and your first review is completely free — no catch, no card required. Tell us about your game below and we'll take it from there.</p>
+
+        <div class="pricing-table">
+          <div class="pricing-row pricing-row-free">
+            <span class="pricing-label">1st review</span>
+            <span class="pricing-amount">Free</span>
+          </div>
+          <div class="pricing-row">
+            <span class="pricing-label">2nd review</span>
+            <span class="pricing-amount">$20</span>
+          </div>
+          <div class="pricing-row">
+            <span class="pricing-label">3rd review onward</span>
+            <span class="pricing-amount">$40</span>
+          </div>
+          <div class="pricing-row pricing-row-pair">
+            <span class="pricing-label">You + a teammate, reviewed together</span>
+            <span class="pricing-amount">$60 <span class="pricing-flat">flat</span></span>
+          </div>
+        </div>
+        <p class="pricing-footnote">Pricing only kicks in after your free first review. The $60 teammate rate applies no matter where either of you are individually.</p>
+
+        <div class="apply-note">
+          <strong>What happens after you apply:</strong> we'll watch your footage and follow up by email with next steps for your walkthrough.
+        </div>
+      </div>
+
+      <form id="application-form" class="reveal" onsubmit="handleSubmit(event)">
+        <div class="field-row">
+          <div class="field">
+            <label for="name">Full name</label>
+            <input id="name" type="text" placeholder="Your name" required>
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="you@email.com" required>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="position">Position</label>
+            <select id="position" required>
+              <option value="" disabled selected>Select position</option>
+              <option>Goalkeeper</option>
+              <option>Center back</option>
+              <option>Full back / Wing back</option>
+              <option>Defensive midfielder</option>
+              <option>Central midfielder</option>
+              <option>Attacking midfielder</option>
+              <option>Winger</option>
+              <option>Striker</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="level">Level / age group</label>
+            <input id="level" type="text" placeholder="e.g. U16 club, college, semi-pro">
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="format">Format</label>
+            <select id="format" required>
+              <option value="" disabled selected>Select format</option>
+              <option>7v7</option>
+              <option>9v9</option>
+              <option>11v11</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="delivery">How should we deliver your review?</label>
+            <select id="delivery" required>
+              <option value="" disabled selected>Select delivery method</option>
+              <option>Written report</option>
+              <option>Phone call</option>
+              <option>Narrated video with animations</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="playstyle">How would you describe your team's style of play?</label>
+          <textarea id="playstyle" placeholder="e.g. We sit deep and counter, we build out from the back, high press, direct/long ball..."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="footage-link">Footage link <span class="opt">(YouTube, Hudl, Veo, etc.)</span></label>
+          <input id="footage-link" type="url" placeholder="https://">
+        </div>
+
+        <div class="field">
+          <label for="footage-file">Or upload a clip <span class="opt">(optional, max one file)</span></label>
+          <input id="footage-file" type="file" accept="video/*">
+        </div>
+
+        <div class="field">
+          <label for="focus">What do you want feedback on?</label>
+          <textarea id="focus" placeholder="e.g. My positioning when we lose the ball, whether my runs in behind are timed well, decision-making under pressure..."></textarea>
+        </div>
+
+        <div class="teammate-toggle">
+          <label class="checkbox-label">
+            <input type="checkbox" id="add-teammate" onchange="toggleTeammate()">
+            <span>I'd like this review done together with a teammate ($60 flat for both of you)</span>
+          </label>
+        </div>
+
+        <div id="teammate-fields" class="teammate-fields">
+          <div class="field-row">
+            <div class="field">
+              <label for="teammate-name">Teammate's full name <span class="opt">(optional)</span></label>
+              <input id="teammate-name" type="text" placeholder="Their name">
+            </div>
+            <div class="field">
+              <label for="teammate-email">Teammate's email <span class="opt">(optional)</span></label>
+              <input id="teammate-email" type="email" placeholder="their@email.com">
+            </div>
+          </div>
+          <div class="field">
+            <label for="teammate-position">Teammate's position <span class="opt">(optional)</span></label>
+            <select id="teammate-position">
+              <option value="" disabled selected>Select position</option>
+              <option>Goalkeeper</option>
+              <option>Center back</option>
+              <option>Full back / Wing back</option>
+              <option>Defensive midfielder</option>
+              <option>Central midfielder</option>
+              <option>Attacking midfielder</option>
+              <option>Winger</option>
+              <option>Striker</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="submit-row">
+          <button type="submit" class="btn-primary">Submit application →</button>
+          <p>Your first review is free — no payment needed today.</p>
+        </div>
+        <span id="status" class="status-msg">Application received — we'll be in touch by email soon.</span>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap footer-row">
+    <div class="logo">
+      <svg class="logo-mark" viewBox="0 0 26 26" fill="none">
+        <circle cx="13" cy="13" r="9" stroke="#C9A961" stroke-width="1.5"/>
+        <circle cx="13" cy="13" r="3" fill="#C9A961"/>
+        <path d="M2 13c3-6 8-9 11-9" stroke="#E8482C" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 3"/>
+      </svg>
+      Eye for Detail
+    </div>
+    <p>FOOTAGE REVIEWED MANUALLY · NO ALGORITHMS · FIRST REVIEW FREE</p>
+  </div>
+</footer>
+
+<script>
+  // Scroll reveal
+  const revealEls = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in');
+        obs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  revealEls.forEach(el => obs.observe(el));
+
+  // The About section is hidden by default with no trace on the page.
+  // Clicking "Who's behind the breakdown" in the nav reveals it, then scrolls to it.
+  function openAboutSection(e) {
+    e.preventDefault();
+    const section = document.getElementById('about');
+    section.classList.add('open');
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Nav "About" dropdown
+  function toggleNavDropdown(e) {
+    e.stopPropagation();
+    const trigger = e.currentTarget;
+    const menu = trigger.nextElementSibling;
+    const isOpen = menu.classList.toggle('open');
+    trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+
+  document.addEventListener('click', (e) => {
+    const dropdown = document.querySelector('.nav-dropdown');
+    if (!dropdown) return;
+    if (!dropdown.contains(e.target)) {
+      dropdown.querySelector('.nav-dropdown-menu').classList.remove('open');
+      dropdown.querySelector('.nav-dropdown-trigger').setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  document.querySelectorAll('.nav-dropdown-menu a').forEach(link => {
+    link.addEventListener('click', () => {
+      document.querySelector('.nav-dropdown-menu').classList.remove('open');
+      document.querySelector('.nav-dropdown-trigger').setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  // Toggle optional teammate fields
+  function toggleTeammate() {
+    const checkbox = document.getElementById('add-teammate');
+    const fields = document.getElementById('teammate-fields');
+    fields.classList.toggle('show', checkbox.checked);
+  }
+
+  // Form submit (no backend — placeholder confirmation)
+  function handleSubmit(e) {
+    e.preventDefault();
+    const status = document.getElementById('status');
+    status.classList.add('show');
+    document.getElementById('application-form').querySelector('.btn-primary').textContent = 'Submitted ✓';
+    document.getElementById('application-form').querySelectorAll('input, textarea, select, button').forEach(el => el.disabled = true);
+  }
+</script>
+
+</body>
+</html>
