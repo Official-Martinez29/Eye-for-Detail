@@ -190,6 +190,7 @@
   @media (max-width: 760px) {
     .nav-links { display: none; }
     nav { padding: 16px 20px; }
+    section { padding: 80px 0; }
   }
 
   /* ---------- Hero ---------- */
@@ -389,71 +390,8 @@
     }
   }
 
-  /* ---------- About section (hidden until opened from nav) ---------- */
-  .about-section {
-    display: none;
-  }
-
-  .about-section.open {
-    display: block;
-  }
-
-  .about-title {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: clamp(24px, 3vw, 34px);
-    line-height: 1.15;
-    max-width: 640px;
-    margin: 16px 0 36px;
-  }
-
-  .about-bio {
-    margin-top: 36px;
-  }
-
-  .about-bio p {
-    font-size: 16px;
-    color: var(--chalk-dim);
-    max-width: 680px;
-    margin-bottom: 20px;
-  }
-  .about-bio p:last-child { margin-bottom: 0; }
-
-  /* ---------- Bio / credibility ---------- */
-  .bio-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1px;
-    background: var(--line);
-    border: 1px solid var(--line);
-    margin-bottom: 8px;
-  }
-
-  .bio-stat {
-    background: var(--ink-soft);
-    padding: 28px 22px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .bio-stat-num {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 40px;
-    color: var(--brass);
-    line-height: 1;
-  }
-
-  .bio-stat-label {
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    color: var(--chalk-dim);
-    letter-spacing: 0.02em;
-  }
-
   /* ---------- Section scaffolding ---------- */
-  section { padding: 88px 0; border-top: 1px solid var(--line); }
+  section { padding: 120px 0; border-top: 1px solid var(--line); }
   .hero { border-top: none; }
 
   .section-head {
@@ -918,7 +856,7 @@
           About <span class="nav-dropdown-caret">▾</span>
         </button>
         <div class="nav-dropdown-menu">
-          <a href="#about" onclick="openAboutSection(event)">Who's behind the breakdown</a>
+          <a href="about.html">Who's behind the breakdown</a>
           <a href="#how-it-works">How it works</a>
         </div>
       </div>
@@ -990,40 +928,6 @@
 
 
   <!-- ABOUT / CREDIBILITY -->
-  <section id="about" class="wrap about-section">
-    <div id="about-content" class="about-content">
-      <div class="eyebrow">Who's behind the breakdown</div>
-      <h2 class="about-title">15 years of competitive soccer, from MLS NEXT-level academy ball to an NCAA Elite Eight run.</h2>
-
-      <div class="bio-stats">
-        <div class="bio-stat">
-          <span class="bio-stat-num">6</span>
-          <span class="bio-stat-label">Years at Miami<br>Fútbol Academy Rush</span>
-        </div>
-        <div class="bio-stat">
-          <span class="bio-stat-num">3</span>
-          <span class="bio-stat-label">Years on the<br>Academy team</span>
-        </div>
-        <div class="bio-stat">
-          <span class="bio-stat-num">4</span>
-          <span class="bio-stat-label">Years D-II soccer,<br>Rollins College</span>
-        </div>
-        <div class="bio-stat">
-          <span class="bio-stat-num">E8</span>
-          <span class="bio-stat-label">NCAA Tournament,<br>senior season</span>
-        </div>
-      </div>
-
-      <div class="about-bio">
-        <p>My name is Adrian Martinez. I'm a former soccer player with 15 years of competitive experience.</p>
-        <p>My competitive career began at Miami Fútbol Academy Rush, formerly known as Miami Rush Kendall SC and Kendall Soccer Coalition. I played there for six years, spending three of them — U14, U16, and U18 — on their Academy teams, the equivalent of present-day MLS NEXT. During that time, I represented the USA in two tournaments in Portugal, and played in Colombia against the youth teams of Atlético Nacional, Deportivo Independiente Medellín, Envigado F.C., and Águilas Doradas. In the US, I played against teams like the New York Red Bulls, Atlanta United, and FC Dallas.</p>
-        <p>In college, I played for the Rollins College Men's Soccer Team in Division II's Sunshine State Conference — the toughest D-II conference in the nation. The highlight of my four years playing college soccer was reaching the Elite Eight of the NCAA tournament.</p>
-        <p>Off the field, I went on to a PhD program before turning toward medicine — I'm currently applying to medical school. The same habit got me through both: paying close, unglamorous attention to detail. That's what this is.</p>
-      </div>
-    </div>
-  </section>
-
-
   <!-- WHAT YOU GET -->
   <section id="what-you-get" class="wrap">
     <div class="section-head reveal">
@@ -1251,6 +1155,11 @@
           </div>
         </div>
 
+        <div class="field">
+          <label for="jersey-number">Jersey number <span class="opt">(optional)</span></label>
+          <input id="jersey-number" name="jersey_number" type="text" inputmode="numeric" placeholder="e.g. 7">
+        </div>
+
         <div class="field-row">
           <div class="field">
             <label for="format">Format</label>
@@ -1310,19 +1219,25 @@
               <input id="teammate-email" name="teammate_email" type="email" placeholder="their@email.com">
             </div>
           </div>
-          <div class="field">
-            <label for="teammate-position">Teammate's position <span class="opt">(optional)</span></label>
-            <select id="teammate-position" name="teammate_position">
-              <option value="" disabled selected>Select position</option>
-              <option>Goalkeeper</option>
-              <option>Center back</option>
-              <option>Full back / Wing back</option>
-              <option>Defensive midfielder</option>
-              <option>Central midfielder</option>
-              <option>Attacking midfielder</option>
-              <option>Winger</option>
-              <option>Striker</option>
-            </select>
+          <div class="field-row">
+            <div class="field">
+              <label for="teammate-position">Teammate's position <span class="opt">(optional)</span></label>
+              <select id="teammate-position" name="teammate_position">
+                <option value="" disabled selected>Select position</option>
+                <option>Goalkeeper</option>
+                <option>Center back</option>
+                <option>Full back / Wing back</option>
+                <option>Defensive midfielder</option>
+                <option>Central midfielder</option>
+                <option>Attacking midfielder</option>
+                <option>Winger</option>
+                <option>Striker</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="teammate-jersey-number">Teammate's jersey number <span class="opt">(optional)</span></label>
+              <input id="teammate-jersey-number" name="teammate_jersey_number" type="text" inputmode="numeric" placeholder="e.g. 10">
+            </div>
           </div>
         </div>
 
@@ -1362,15 +1277,6 @@
     });
   }, { threshold: 0.12 });
   revealEls.forEach(el => obs.observe(el));
-
-  // The About section is hidden by default with no trace on the page.
-  // Clicking "Who's behind the breakdown" in the nav reveals it, then scrolls to it.
-  function openAboutSection(e) {
-    e.preventDefault();
-    const section = document.getElementById('about');
-    section.classList.add('open');
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
 
   // Nav "About" dropdown
   function toggleNavDropdown(e) {
